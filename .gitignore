@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.pem
+*.key
+
+# Local application data
+data/*.db
+data/*.db-*
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

@@ -1,5 +1,6 @@
 """Streamlit interface for the AI Research Assistant."""
 
+import re
 import sqlite3
 
 import streamlit as st
@@ -8,6 +9,7 @@ from dotenv import load_dotenv
 from models.paper import Paper
 from services.database import initialize_database, list_papers, save_paper
 from services.paper_search import OpenAlexError, search_papers
+from services.pdf_processor import PDFProcessingError, process_pdf, save_pdf_file
 
 
 load_dotenv()
@@ -66,9 +68,90 @@ def render_search() -> None:
                     st.error(f"The paper could not be saved: {error}")
 
 
-def render_upload_placeholder() -> None:
+def render_upload() -> None:
     st.header("Upload PDF")
-    st.info("PDF upload and metadata extraction will be added in the next phase.")
+    st.write(
+        "Upload a text-based research paper, review the locally extracted metadata, "
+        "and correct it before saving."
+    )
+    uploaded_file = st.file_uploader(
+        "Research paper PDF",
+        type=["pdf"],
+        accept_multiple_files=False,
+    )
+    if uploaded_file is None:
+        return
+
+    file_bytes = uploaded_file.getvalue()
+    if st.button("Extract text and metadata"):
+        try:
+            with st.spinner("Reading PDF..."):
+                st.session_state.processed_pdf = process_pdf(
+                    file_bytes, uploaded_file.name
+                )
+                st.session_state.processed_pdf_bytes = file_bytes
+        except PDFProcessingError as error:
+            st.session_state.pop("processed_pdf", None)
+            st.session_state.pop("processed_pdf_bytes", None)
+            st.error(str(error))
+
+    extracted = st.session_state.get("processed_pdf")
+    stored_bytes = st.session_state.get("processed_pdf_bytes")
+    if extracted is None or stored_bytes != file_bytes:
+        return
+
+    st.success(
+        f"Extracted readable text from {extracted.page_count} page(s). "
+        "Review every field below before saving."
+    )
+    with st.form("pdf_metadata_form"):
+        title = st.text_input("Title", value=extracted.title)
+        authors = st.text_input(
+            "Authors (separate multiple authors with semicolons)",
+            value="; ".join(extracted.authors),
+        )
+        year = st.text_input(
+            "Publication year",
+            value=str(extracted.publication_year or ""),
+        )
+        abstract = st.text_area(
+            "Abstract",
+            value=extracted.abstract or "",
+            height=180,
+        )
+        save_submitted = st.form_submit_button("Save uploaded paper")
+
+    if save_submitted:
+        cleaned_authors = [
+            author.strip()
+            for author in re.split(r"[;\n]+", authors)
+            if author.strip()
+        ]
+        if not title.strip() or not cleaned_authors or not year.strip() or not abstract.strip():
+            st.error("Title, authors, publication year, and abstract are required.")
+            return
+        if not re.fullmatch(r"(?:19|20)\d{2}", year.strip()):
+            st.error("Enter a four-digit publication year between 1900 and 2099.")
+            return
+
+        try:
+            pdf_path = save_pdf_file(file_bytes, extracted.file_hash)
+            paper = Paper(
+                source_type="upload",
+                external_id=f"upload:{extracted.file_hash}",
+                title=title.strip(),
+                authors=cleaned_authors,
+                publication_year=int(year),
+                abstract=abstract.strip(),
+                pdf_path=pdf_path,
+                extracted_text=extracted.extracted_text,
+            )
+            save_paper(paper)
+            st.success("Uploaded paper saved to your library.")
+        except sqlite3.IntegrityError:
+            st.info("This PDF is already in your library.")
+        except (OSError, ValueError, RuntimeError) as error:
+            st.error(f"The uploaded paper could not be saved: {error}")
 
 
 def render_library() -> None:
@@ -99,8 +182,7 @@ with search_tab:
     render_search()
 
 with upload_tab:
-    render_upload_placeholder()
+    render_upload()
 
 with library_tab:
     render_library()
-

@@ -7,7 +7,13 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from models.paper import Paper
-from services.database import initialize_database, list_papers, save_paper
+from services.database import initialize_database, list_papers, save_paper, update_paper
+from services.llm_service import LLMServiceError, answer_question, generate_summary
+from services.paper_content import (
+    PaperContentError,
+    attach_pdf_to_paper,
+    download_open_access_pdf,
+)
 from services.paper_search import OpenAlexError, search_papers
 from services.pdf_processor import PDFProcessingError, process_pdf, save_pdf_file
 
@@ -171,6 +177,86 @@ def render_library() -> None:
     with st.container(border=True):
         display_paper(selected_paper)
         st.caption(f"Source: {selected_paper.source_type}")
+
+    if not selected_paper.extracted_text:
+        st.warning(
+            "Full paper text is not available. Summaries and answers cannot be "
+            "generated from metadata or the abstract alone."
+        )
+        if selected_paper.pdf_url and st.button(
+            "Download available open-access PDF",
+            key=f"download_pdf_{selected_paper.id}",
+        ):
+            try:
+                with st.spinner("Downloading and extracting the paper..."):
+                    selected_paper = download_open_access_pdf(selected_paper)
+                st.success("Full paper text was downloaded and saved.")
+            except PaperContentError as error:
+                st.error(str(error))
+
+        attachment = st.file_uploader(
+            "Or attach the corresponding PDF to this saved paper",
+            type=["pdf"],
+            key=f"library_pdf_{selected_paper.id}",
+        )
+        if attachment is not None and st.button(
+            "Attach PDF to selected paper",
+            key=f"attach_pdf_{selected_paper.id}",
+        ):
+            try:
+                with st.spinner("Extracting and attaching the PDF..."):
+                    selected_paper = attach_pdf_to_paper(
+                        selected_paper,
+                        attachment.getvalue(),
+                        attachment.name,
+                    )
+                st.success("PDF attached. Full-text analysis is now available.")
+            except PaperContentError as error:
+                st.error(str(error))
+
+    if not selected_paper.extracted_text:
+        st.info("Upload the corresponding PDF above to enable analysis.")
+        return
+
+    st.divider()
+    st.subheader("Paper Summary")
+    if selected_paper.summary:
+        st.markdown(selected_paper.summary)
+        st.caption("Saved summary — no new API request was made.")
+    elif st.button("Generate Summary", key=f"summary_{selected_paper.id}"):
+        try:
+            with st.spinner("Generating a summary from the full paper text..."):
+                summary = generate_summary(selected_paper.extracted_text)
+                updated = update_paper(selected_paper.id, summary=summary)
+                if updated is None:
+                    raise RuntimeError("The selected paper no longer exists.")
+                selected_paper = updated
+            st.markdown(summary)
+            st.success("Summary generated and saved.")
+        except (LLMServiceError, RuntimeError) as error:
+            st.error(str(error))
+
+    st.subheader("Ask a Question")
+    with st.form(f"question_form_{selected_paper.id}"):
+        question = st.text_input(
+            "Question about this paper",
+            placeholder="What limitations did the authors identify?",
+        )
+        ask_submitted = st.form_submit_button("Ask Question")
+
+    answer_key = f"paper_answer_{selected_paper.id}"
+    if ask_submitted:
+        try:
+            with st.spinner("Answering from the full paper text..."):
+                st.session_state[answer_key] = answer_question(
+                    selected_paper.extracted_text, question
+                )
+        except LLMServiceError as error:
+            st.error(str(error))
+
+    if st.session_state.get(answer_key):
+        st.markdown("**Answer:**")
+        st.markdown(st.session_state[answer_key])
 
 
 st.title("AI Research Assistant")

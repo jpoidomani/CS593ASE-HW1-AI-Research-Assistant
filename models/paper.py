@@ -17,8 +17,9 @@ class Paper:
     pdf_url: str | None = None
     pdf_path: str | None = None
     extracted_text: str | None = None
+    page_count: int | None = None
+    unreadable_page_count: int = 0
     summary: str | None = None
     id: int | None = None
     created_at: str | None = None
     updated_at: str | None = None
-

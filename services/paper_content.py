@@ -65,6 +65,8 @@ def attach_pdf_to_paper(paper: Paper, file_bytes: bytes, filename: str) -> Paper
         paper.id,
         pdf_path=pdf_path,
         extracted_text=extracted.extracted_text,
+        page_count=extracted.page_count,
+        unreadable_page_count=extracted.unreadable_page_count,
     )
     if updated is None:
         raise PaperContentError("The selected paper no longer exists in the library.")

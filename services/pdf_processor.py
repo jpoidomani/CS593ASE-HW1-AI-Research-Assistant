@@ -30,6 +30,11 @@ class ExtractedPDF:
     abstract: str | None = None
     extracted_text: str = ""
     page_count: int = 0
+    pages_with_text: list[bool] = field(default_factory=list)
+
+    @property
+    def unreadable_page_count(self) -> int:
+        return self.pages_with_text.count(False)
 
 
 def process_pdf(file_bytes: bytes, filename: str) -> ExtractedPDF:
@@ -45,6 +50,7 @@ def process_pdf(file_bytes: bytes, filename: str) -> ExtractedPDF:
             raise PDFProcessingError("The PDF does not contain any pages.")
 
         page_text = [(page.extract_text() or "").strip() for page in reader.pages]
+        pages_with_text = [bool(text) for text in page_text]
         metadata = reader.metadata
     except PDFProcessingError:
         raise
@@ -82,6 +88,7 @@ def process_pdf(file_bytes: bytes, filename: str) -> ExtractedPDF:
         abstract=abstract,
         extracted_text=extracted_text,
         page_count=len(reader.pages),
+        pages_with_text=pages_with_text,
     )
 
 

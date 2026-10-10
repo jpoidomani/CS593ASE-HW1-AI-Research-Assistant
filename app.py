@@ -37,6 +37,19 @@ def display_paper(paper: Paper, heading: bool = True) -> None:
         st.link_button("View paper", paper.paper_url)
 
 
+def display_extraction_warning(
+    unreadable_page_count: int, page_count: int | None
+) -> None:
+    """Warn when only part of a PDF produced extractable text."""
+    if unreadable_page_count <= 0:
+        return
+    total = f" of {page_count}" if page_count else ""
+    st.warning(
+        f"Text could not be extracted from {unreadable_page_count}{total} page(s). "
+        "Some paper content may be missing from summaries and question answers."
+    )
+
+
 def render_search() -> None:
     st.header("Search Papers")
     st.write("Search OpenAlex by keywords or research topic.")
@@ -106,9 +119,13 @@ def render_upload() -> None:
     if extracted is None or stored_bytes != file_bytes:
         return
 
+    readable_page_count = extracted.page_count - extracted.unreadable_page_count
     st.success(
-        f"Extracted readable text from {extracted.page_count} page(s). "
-        "Review every field below before saving."
+        f"Processed {extracted.page_count} page(s) and found readable text on "
+        f"{readable_page_count}. Review every field below before saving."
+    )
+    display_extraction_warning(
+        extracted.unreadable_page_count, extracted.page_count
     )
     with st.form("pdf_metadata_form"):
         title = st.text_input("Title", value=extracted.title)
@@ -151,6 +168,8 @@ def render_upload() -> None:
                 abstract=abstract.strip(),
                 pdf_path=pdf_path,
                 extracted_text=extracted.extracted_text,
+                page_count=extracted.page_count,
+                unreadable_page_count=extracted.unreadable_page_count,
             )
             save_paper(paper)
             st.success("Uploaded paper saved to your library.")
@@ -213,6 +232,10 @@ def render_library() -> None:
                 st.success("PDF attached. Full-text analysis is now available.")
             except PaperContentError as error:
                 st.error(str(error))
+
+    display_extraction_warning(
+        selected_paper.unreadable_page_count, selected_paper.page_count
+    )
 
     if not selected_paper.extracted_text:
         st.info("Upload the corresponding PDF above to enable analysis.")

@@ -25,6 +25,8 @@ EDITABLE_FIELDS = {
     "pdf_url",
     "pdf_path",
     "extracted_text",
+    "page_count",
+    "unreadable_page_count",
     "summary",
 }
 
@@ -62,12 +64,23 @@ def initialize_database(database_path: str | Path | None = None) -> None:
                 pdf_url TEXT,
                 pdf_path TEXT,
                 extracted_text TEXT,
+                page_count INTEGER,
+                unreadable_page_count INTEGER NOT NULL DEFAULT 0,
                 summary TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        existing_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(papers)")
+        }
+        if "page_count" not in existing_columns:
+            connection.execute("ALTER TABLE papers ADD COLUMN page_count INTEGER")
+        if "unreadable_page_count" not in existing_columns:
+            connection.execute(
+                "ALTER TABLE papers ADD COLUMN unreadable_page_count INTEGER NOT NULL DEFAULT 0"
+            )
 
 
 def save_paper(paper: Paper, database_path: str | Path | None = None) -> Paper:
@@ -80,8 +93,9 @@ def save_paper(paper: Paper, database_path: str | Path | None = None) -> Paper:
             """
             INSERT INTO papers (
                 source_type, external_id, title, authors, publication_year,
-                abstract, paper_url, pdf_url, pdf_path, extracted_text, summary
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                abstract, paper_url, pdf_url, pdf_path, extracted_text,
+                page_count, unreadable_page_count, summary
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 paper.source_type,
@@ -94,6 +108,8 @@ def save_paper(paper: Paper, database_path: str | Path | None = None) -> Paper:
                 paper.pdf_url,
                 paper.pdf_path,
                 paper.extracted_text,
+                paper.page_count,
+                paper.unreadable_page_count,
                 paper.summary,
             ),
         )
@@ -191,8 +207,9 @@ def _row_to_paper(row: sqlite3.Row) -> Paper:
         pdf_url=row["pdf_url"],
         pdf_path=row["pdf_path"],
         extracted_text=row["extracted_text"],
+        page_count=row["page_count"],
+        unreadable_page_count=row["unreadable_page_count"],
         summary=row["summary"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
-

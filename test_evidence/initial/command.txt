@@ -1,0 +1,1 @@
+.venv/bin/python -m pytest --cov=app --cov=models --cov=services --cov-branch --cov-report=term-missing --cov-report=json:test_evidence/initial/coverage.json --junitxml=test_evidence/initial/junit.xml

@@ -1,0 +1,48 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.1, pytest-8.4.2, pluggy-1.7.0
+rootdir: /Users/jpoidomani/CS593ASE Assignments/Homework1
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-6.3.0, anyio-4.15.1
+collected 59 items
+
+tests/test_app.py FF                                                     [  3%]
+tests/test_database.py ............                                      [ 23%]
+tests/test_llm_service.py .............                                  [ 45%]
+tests/test_paper_content.py .........                                    [ 61%]
+tests/test_paper_search.py .............                                 [ 83%]
+tests/test_pdf_processor.py ..........                                   [100%]
+
+=================================== FAILURES ===================================
+Both Streamlit tests failed at AppTest.from_file("app.py") with:
+
+FileNotFoundError: AppTest script not found at
+/Users/jpoidomani/CS593ASE Assignments/Homework1/tests/app.py.
+Relative paths are resolved against the file that calls AppTest.from_file().
+
+Coverage also emitted:
+
+CoverageWarning: Module app was never imported. (module-not-imported)
+
+================================ tests coverage ================================
+Name                        Stmts   Miss Branch BrPart  Cover   Missing
+-----------------------------------------------------------------------
+models/__init__.py              2      0      0      0   100%
+models/paper.py                19      0      0      0   100%
+services/__init__.py            0      0      0      0   100%
+services/database.py           77      3     22      1    96%   36-37, 120
+services/llm_service.py        51      6     12      0    90%   83, 87, 97-102
+services/paper_content.py      41      0     14      0   100%
+services/paper_search.py       58      0     22      1    99%   73->72
+services/pdf_processor.py      93      6     24      3    92%   58, 72-75, 107->105, 109, 125->128
+-----------------------------------------------------------------------
+TOTAL                         341     15     94      5    95%
+Coverage JSON written to file test_evidence/initial/coverage.json
+=========================== short test summary info ============================
+FAILED tests/test_app.py::test_app_starts_with_expected_navigation_and_empty_library
+FAILED tests/test_app.py::test_empty_search_shows_validation_warning
+========================= 2 failed, 57 passed in 7.46s =========================
+
+Note: The full machine-readable failure traces are preserved in junit.xml. This
+text file preserves the exact counts, failure cause, coverage table, and timing
+while omitting duplicate framework stack frames.

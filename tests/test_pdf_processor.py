@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from pypdf.errors import PdfReadError
 
 from services.pdf_processor import PDFProcessingError, process_pdf, save_pdf_file
 
@@ -112,6 +113,48 @@ def test_process_pdf_translates_unexpected_extraction_error(monkeypatch):
 
     with pytest.raises(PDFProcessingError, match="Text could not be extracted"):
         process_pdf(b"%PDF-fake", "paper.pdf")
+
+
+def test_process_pdf_translates_known_parser_error(monkeypatch):
+    monkeypatch.setattr(
+        "services.pdf_processor.PdfReader",
+        Mock(side_effect=PdfReadError("broken xref")),
+    )
+    with pytest.raises(PDFProcessingError, match="damaged or could not be read"):
+        process_pdf(b"%PDF-fake", "paper.pdf")
+
+
+def test_process_pdf_handles_unreadable_metadata_properties(monkeypatch):
+    class BrokenMetadata:
+        @property
+        def title(self):
+            raise ValueError("invalid metadata")
+
+    reader = fake_reader("Fallback Title From Page\nPublished 2022")
+    reader.metadata = BrokenMetadata()
+    monkeypatch.setattr("services.pdf_processor.PdfReader", Mock(return_value=reader))
+
+    result = process_pdf(b"%PDF-fake", "fallback.pdf")
+
+    assert result.title == "Fallback Title From Page"
+    assert result.authors == []
+    assert result.publication_year == 2022
+
+
+def test_process_pdf_uses_filename_and_splits_author_delimiters(monkeypatch):
+    metadata = SimpleNamespace(
+        title=None,
+        author="Ada Lovelace; Grace Hopper; Katherine Johnson",
+        creation_date=None,
+    )
+    reader = fake_reader("12345", metadata=metadata)
+    monkeypatch.setattr("services.pdf_processor.PdfReader", Mock(return_value=reader))
+
+    result = process_pdf(b"%PDF-fake", "agent_testing-paper.pdf")
+
+    assert result.title == "agent testing paper"
+    assert result.authors == ["Ada Lovelace", "Grace Hopper", "Katherine Johnson"]
+    assert result.publication_year is None
 
 
 def test_save_pdf_file_writes_once_to_configured_upload_directory(

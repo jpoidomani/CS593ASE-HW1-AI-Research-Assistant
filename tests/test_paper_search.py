@@ -128,3 +128,30 @@ def test_search_rejects_unexpected_payload(monkeypatch, payload):
 
     with pytest.raises(OpenAlexError, match="unexpected response"):
         search_papers("topic")
+
+
+def test_reconstruct_abstract_ignores_invalid_words_and_positions():
+    inverted = {
+        123: [0],
+        "valid": ["zero", 1],
+        "also": [0],
+        "invalid-list": "not a list",
+    }
+    assert reconstruct_abstract(inverted) == "also valid"
+
+
+def test_search_falls_back_to_primary_pdf_and_openalex_page(monkeypatch):
+    response = Mock()
+    response.json.return_value = {
+        "results": [{
+            "id": "https://openalex.org/W9",
+            "title": "Fallback locations",
+            "authorships": [],
+            "primary_location": {"pdf_url": "https://primary.test/paper.pdf"},
+            "best_oa_location": None,
+        }]
+    }
+    monkeypatch.setattr("services.paper_search.requests.get", Mock(return_value=response))
+    paper = search_papers("fallback")[0]
+    assert paper.paper_url == "https://openalex.org/W9"
+    assert paper.pdf_url == "https://primary.test/paper.pdf"

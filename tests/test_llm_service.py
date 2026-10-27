@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import httpx
 import openai
 import pytest
 
@@ -96,5 +97,56 @@ def test_known_openai_errors_are_translated(monkeypatch, error, message):
     _, create = install_fake_client(monkeypatch)
     create.side_effect = error
 
+    with pytest.raises(LLMServiceError, match=message):
+        generate_summary("Paper text")
+
+
+@pytest.mark.parametrize(
+    ("error_factory", "message"),
+    [
+        (
+            lambda: openai.NotFoundError(
+                "missing",
+                response=httpx.Response(
+                    404, request=httpx.Request("POST", "https://api.test")
+                ),
+                body=None,
+            ),
+            "configured OpenAI model 'custom-model' is unavailable",
+        ),
+        (
+            lambda: openai.BadRequestError(
+                "bad request",
+                response=httpx.Response(
+                    400, request=httpx.Request("POST", "https://api.test")
+                ),
+                body=None,
+            ),
+            "Verify that 'custom-model' is available",
+        ),
+        (
+            lambda: openai.APIStatusError(
+                "server error",
+                response=httpx.Response(
+                    503, request=httpx.Request("POST", "https://api.test")
+                ),
+                body=None,
+            ),
+            "status 503",
+        ),
+        (
+            lambda: openai.APIError(
+                "generic", httpx.Request("POST", "https://api.test"), body=None
+            ),
+            "OpenAI request failed",
+        ),
+    ],
+)
+def test_remaining_openai_errors_are_translated(
+    monkeypatch, error_factory, message
+):
+    _, create = install_fake_client(monkeypatch)
+    monkeypatch.setenv("OPENAI_MODEL", "custom-model")
+    create.side_effect = error_factory()
     with pytest.raises(LLMServiceError, match=message):
         generate_summary("Paper text")

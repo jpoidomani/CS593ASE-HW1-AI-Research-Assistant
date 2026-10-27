@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import sqlite3
+from unittest.mock import Mock
 
 import pytest
 
 from models.paper import Paper
 from services.database import (
+    DEFAULT_DATABASE_PATH,
+    get_database_path,
     get_paper,
     initialize_database,
     list_papers,
@@ -150,3 +153,20 @@ def test_initialize_database_migrates_missing_page_columns(tmp_path):
     with sqlite3.connect(database_path) as connection:
         columns = {row[1] for row in connection.execute("PRAGMA table_info(papers)")}
     assert {"page_count", "unreadable_page_count"} <= columns
+
+
+def test_database_path_honors_environment_override(tmp_path, monkeypatch):
+    configured = tmp_path / "configured.db"
+    monkeypatch.setenv("DATABASE_PATH", str(configured))
+    assert get_database_path() == configured
+
+
+def test_database_path_uses_default_when_not_configured(monkeypatch):
+    monkeypatch.delenv("DATABASE_PATH", raising=False)
+    assert get_database_path() == DEFAULT_DATABASE_PATH
+
+
+def test_save_reports_defensive_retrieval_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr("services.database.get_paper", Mock(return_value=None))
+    with pytest.raises(RuntimeError, match="inserted but could not be retrieved"):
+        save_paper(make_paper(), tmp_path / "papers.db")

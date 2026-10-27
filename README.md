@@ -202,9 +202,3 @@ results, machine-readable coverage and JUnit data, and an evaluation summary.
 - LLM output can be imperfect even with full-text grounding and should be
   checked against the original paper.
 
-## Assignment submission reminder
-
-In addition to the GitHub repository, the assignment requires a short demo video
-showing search, save, PDF upload, summary generation, and paper question
-answering. It also requires a reflection report about the coding-agent experience,
-including screenshots of relevant interactions and corrections.

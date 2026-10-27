@@ -115,9 +115,77 @@ generated data and are excluded from Git.
 │   └── llm_service.py           # OpenAI summaries and paper questions
 ├── data/
 │   └── uploads/                 # Generated local PDF storage
+├── tests/                       # Automated unit, workflow, and integration tests
+├── test_evidence/               # Preserved Homework 2 results and evaluations
+├── pytest.ini                   # Pytest configuration
 ├── requirements.txt             # Python dependencies
 └── .env.example                 # Safe environment-variable template
 ```
+
+## Homework 2: automated testing
+
+The Homework 2 suite contains 81 automated tests covering SQLite persistence,
+OpenAlex response normalization, PDF processing and attachment, OpenAI request
+validation and error handling, and important Streamlit workflows. It also
+includes integration tests that generate a real text-based PDF, extract its
+content, persist the result to SQLite, and verify the partial-extraction warning.
+
+The suite uses:
+
+- `pytest` as the test runner
+- `pytest-cov` and Coverage.py for statement and branch coverage
+- Streamlit `AppTest` for simulated application workflows
+- `unittest.mock` and pytest fixtures to isolate external services and local data
+
+### Install testing dependencies
+
+The testing tools are included in `requirements.txt`. From the project root,
+create and activate a virtual environment as described in Setup, then run:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+No `.env` file or API key is needed to execute the tests.
+
+### Run the final test suite
+
+With the virtual environment activated, run exactly:
+
+```bash
+python -m pytest
+```
+
+To reproduce the final statement and branch coverage measurement, run exactly:
+
+```bash
+python -m pytest --cov=app --cov=models --cov=services --cov-branch --cov-report=term-missing --cov-report=json:test_evidence/final/coverage.json --junitxml=test_evidence/final/junit.xml
+```
+
+That coverage command writes the machine-readable final reports again. The
+committed versions record the submission run: 81 passed, 88.54% complete-app
+statement coverage, and 88.73% complete-app branch coverage.
+
+### Test and evidence layout
+
+The `tests/` directory contains shared isolation fixtures plus focused tests for
+the Streamlit interface, database, OpenAlex search, PDF processing and content
+acquisition, LLM service, and cross-component integration. Tests use temporary
+SQLite databases and temporary directories. OpenAlex, OpenAI, and PDF-download
+requests are mocked, so tests never use the real application database, uploaded
+files, API credentials, or live OpenAI/OpenAlex access.
+
+The `test_evidence/` directory preserves the Homework 2 progression:
+
+- `test_evidence/initial/` contains the original generated baseline, including
+  its two failing Streamlit tests and initial coverage.
+- `test_evidence/round1/` contains the first improvement results after correcting
+  those failures and expanding requirement-focused coverage.
+- `test_evidence/final/` contains the final Round 2 execution, coverage,
+  evaluation, and controlled fault-injection results.
+
+Each evidence directory includes its exact reproduction command, execution
+results, machine-readable coverage and JUnit data, and an evaluation summary.
 
 ## Important limitations
 

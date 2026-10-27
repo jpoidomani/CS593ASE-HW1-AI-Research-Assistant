@@ -24,3 +24,6 @@ data/uploads/*
 .DS_Store
 .idea/
 .vscode/
+
+# Local assignment handouts
+/hw2Handout.pdf

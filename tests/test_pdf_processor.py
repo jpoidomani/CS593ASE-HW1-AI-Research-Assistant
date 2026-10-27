@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import hashlib
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -55,7 +56,7 @@ def test_process_pdf_extracts_text_metadata_and_page_status(monkeypatch):
     assert result.page_count == 3
     assert result.pages_with_text == [True, False, True]
     assert result.unreadable_page_count == 1
-    assert len(result.file_hash) == 64
+    assert result.file_hash == hashlib.sha256(b"%PDF-fake").hexdigest()
 
 
 def test_process_pdf_estimates_missing_metadata(monkeypatch):

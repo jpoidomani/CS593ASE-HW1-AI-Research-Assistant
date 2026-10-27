@@ -59,7 +59,13 @@ def test_search_displays_result_and_saves_it_to_library(monkeypatch):
 
     app.button(key="save_W123").click().run()
     assert any("saved to your library" in success.value for success in app.success)
-    assert [paper.title for paper in list_papers()] == [result.title]
+    stored = list_papers()
+    assert len(stored) == 1
+    assert stored[0].title == result.title
+    assert stored[0].authors == result.authors
+    assert stored[0].publication_year == result.publication_year
+    assert stored[0].abstract == result.abstract
+    assert stored[0].external_id == result.external_id
 
 
 def test_search_reports_no_results(monkeypatch):

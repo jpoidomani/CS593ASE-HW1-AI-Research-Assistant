@@ -1,0 +1,34 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.1, pytest-8.4.2, pluggy-1.7.0
+rootdir: /Users/jpoidomani/CS593ASE Assignments/Homework1
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-6.3.0, anyio-4.15.1
+collected 81 items
+
+tests/test_app.py ..........                                             [ 12%]
+tests/test_database.py ...............                                   [ 30%]
+tests/test_integration.py ..                                             [ 33%]
+tests/test_llm_service.py .................                              [ 54%]
+tests/test_paper_content.py .........                                    [ 65%]
+tests/test_paper_search.py ...............                               [ 83%]
+tests/test_pdf_processor.py .............                                [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.12.1-final-0 _______________
+
+Name                        Stmts   Miss Branch BrPart  Cover   Missing
+-----------------------------------------------------------------------
+app.py                        174     59     48      5    67%   28->31, 84-87, 104-179, 209-214, 225-234, 255, 259-260
+models/__init__.py              2      0      0      0   100%
+models/paper.py                19      0      0      0   100%
+services/__init__.py            0      0      0      0   100%
+services/database.py           77      0     22      0   100%
+services/llm_service.py        51      0     12      0   100%
+services/paper_content.py      41      0     14      0   100%
+services/paper_search.py       58      0     22      0   100%
+services/pdf_processor.py      93      0     24      1    99%   125->128
+-----------------------------------------------------------------------
+TOTAL                         515     59    142      6    89%
+Coverage JSON written to file test_evidence/final/coverage.json
+============================== 81 passed in 8.91s ==============================

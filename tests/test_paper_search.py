@@ -7,7 +7,13 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from services.paper_search import OpenAlexError, reconstruct_abstract, search_papers
+from services.paper_search import (
+    OPENALEX_WORKS_URL,
+    RESULT_FIELDS,
+    OpenAlexError,
+    reconstruct_abstract,
+    search_papers,
+)
 
 
 def test_reconstruct_abstract_orders_words_by_position():
@@ -48,7 +54,8 @@ def test_search_normalizes_openalex_result(monkeypatch):
             }
         ]
     }
-    monkeypatch.setattr("services.paper_search.requests.get", Mock(return_value=response))
+    request = Mock(return_value=response)
+    monkeypatch.setattr("services.paper_search.requests.get", request)
     monkeypatch.setenv("OPENALEX_API_KEY", "test-key")
 
     papers = search_papers(" agent testing ", limit=100)
@@ -59,16 +66,17 @@ def test_search_normalizes_openalex_result(monkeypatch):
     assert papers[0].abstract == "Useful work"
     assert papers[0].paper_url == "https://doi.org/10.1/test"
     assert papers[0].pdf_url == "https://example/paper.pdf"
-    requests.get.assert_called_once_with(
-        "https://api.openalex.org/works",
-        params=pytest.approx({}) if False else {
-            "search": "agent testing",
-            "per_page": 25,
-            "select": pytest.importorskip("services.paper_search").RESULT_FIELDS,
-            "api_key": "test-key",
-        },
-        timeout=15,
-    )
+    request.assert_called_once()
+    url = request.call_args.args[0]
+    options = request.call_args.kwargs
+    assert url == OPENALEX_WORKS_URL
+    assert options["timeout"] == 15
+    assert options["params"] == {
+        "search": "agent testing",
+        "per_page": 25,
+        "select": RESULT_FIELDS,
+        "api_key": "test-key",
+    }
     response.raise_for_status.assert_called_once()
 
 

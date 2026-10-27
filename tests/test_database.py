@@ -64,14 +64,18 @@ def test_update_paper_updates_fields_and_serializes_authors(tmp_path):
     updated = update_paper(
         saved.id,
         database_path,
-        title="  Improved title  ",
+        title="Improved title",
         authors=["New Author"],
         summary="Useful summary",
     )
 
-    assert updated.title == "  Improved title  "
-    assert updated.authors == ["New Author"]
-    assert updated.summary == "Useful summary"
+    reloaded = get_paper(saved.id, database_path)
+    assert reloaded == updated
+    assert reloaded.title == "Improved title"
+    assert reloaded.authors == ["New Author"]
+    assert reloaded.summary == "Useful summary"
+    assert reloaded.external_id == saved.external_id
+    assert reloaded.abstract == saved.abstract
 
 
 def test_update_with_no_changes_returns_existing_paper(tmp_path):

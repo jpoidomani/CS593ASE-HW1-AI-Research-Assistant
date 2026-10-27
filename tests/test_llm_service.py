@@ -36,7 +36,7 @@ def test_generate_summary_builds_grounded_request(monkeypatch):
     constructor.assert_called_once_with(api_key="test-key", timeout=90.0, max_retries=1)
     request = create.call_args.kwargs
     assert request["model"] == DEFAULT_MODEL
-    assert "Full paper text" in request["input"]
+    assert "<paper_text>\nFull paper text\n</paper_text>" in request["input"]
     assert "Do not invent facts" in request["instructions"]
     assert request["max_output_tokens"] == 900
     assert request["store"] is False
@@ -49,7 +49,8 @@ def test_answer_question_uses_configured_model_and_question(monkeypatch):
     assert answer_question("Paper text", " What was found? ") == "Answer"
     request = create.call_args.kwargs
     assert request["model"] == "custom-model"
-    assert "Question: What was found?" in request["input"]
+    assert request["input"].startswith("Question: What was found?")
+    assert "<paper_text>\nPaper text\n</paper_text>" in request["input"]
     assert request["max_output_tokens"] == 700
 
 
